@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Asset, OptimizationResults, PortfolioPoint } from './types';
 import { generateEfficientFrontier } from './mathUtils';
 import { searchTickerData } from './geminiService';
@@ -25,13 +25,21 @@ const App: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [tickerInput, setTickerInput] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  
+  // Ref do śledzenia czy zmiana assetów pochodzi z przycisku optymalizacji
+  const isApplyingOptimization = useRef(false);
 
   const totalWeight = useMemo(() => assets.reduce((sum, a) => sum + a.weight, 0), [assets]);
 
   // Śledzenie zmian, aby wymusić "Oblicz ponownie"
   useEffect(() => {
     if (results) {
-      setIsDirty(true);
+      if (isApplyingOptimization.current) {
+        setIsDirty(false);
+        isApplyingOptimization.current = false;
+      } else {
+        setIsDirty(true);
+      }
     }
   }, [assets]);
 
@@ -48,12 +56,21 @@ const App: React.FC = () => {
 
   const applyOptimizedWeights = (point: PortfolioPoint) => {
     if (!point.weights || point.weights.length !== assets.length) return;
+    
+    isApplyingOptimization.current = true;
     setAssets(prev => prev.map((asset, index) => ({
       ...asset,
       weight: point.weights[index]
     })));
-    // Zapobiegamy isDirty przy samej aplikacji wag z wyników
-    setTimeout(() => setIsDirty(false), 50);
+    
+    // Nadpisujemy userPortfolio w wynikach, aby wykres odświeżył pozycję "Twój Portfel"
+    setResults(prev => prev ? {
+      ...prev,
+      userPortfolio: {
+        ...point,
+        label: 'Twój Portfel'
+      }
+    } : null);
   };
 
   const handleSearchAndAdd = async (e: React.FormEvent) => {
@@ -107,17 +124,17 @@ const App: React.FC = () => {
     }
     setLoading(true);
     const size = assets.length;
-    // Stała macierz korelacji 0.35 dla uproszczenia (zgodnie z poprzednią logiką)
     const matrix = Array(size).fill(0).map((_, i) => 
       Array(size).fill(0).map((_, j) => i === j ? 1 : 0.35)
     );
     try {
+      // Symulacja z lekkim opóźnieniem dla lepszego UX
       setTimeout(() => {
         const res = generateEfficientFrontier(assets, matrix);
         setResults(res);
         setLoading(false);
         setIsDirty(false);
-      }, 500);
+      }, 400);
     } catch (err) {
       console.error(err);
       setLoading(false);
@@ -144,7 +161,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Lewa kolumna: Zarządzanie aktywami */}
         <section className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-200 p-8">
             <div className="flex justify-between items-center mb-6">
@@ -246,7 +262,6 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Prawa kolumna: Wykres i Wyniki */}
         <section className="lg:col-span-7 space-y-8">
           <div className="bg-white rounded-[2rem] shadow-xl border border-slate-200 p-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -256,15 +271,15 @@ const App: React.FC = () => {
                 <div className="flex gap-2 w-full md:w-auto animate-in fade-in slide-in-from-right-4 duration-500">
                   <button 
                     onClick={() => applyOptimizedWeights(results.maxSharpePortfolio)}
-                    className="flex-1 md:flex-none bg-amber-50 text-amber-700 border border-amber-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                    className="flex-1 md:flex-none bg-amber-50 text-amber-700 border border-amber-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center gap-2 group shadow-sm active:scale-95"
                   >
-                    <Zap className="w-3 h-3 fill-current" /> Max Sharpe
+                    <Zap className="w-3 h-3 fill-amber-500 text-amber-500 group-hover:fill-white group-hover:text-white transition-colors" /> Max Sharpe
                   </button>
                   <button 
                     onClick={() => applyOptimizedWeights(results.minRiskPortfolio)}
-                    className="flex-1 md:flex-none bg-emerald-50 text-emerald-700 border border-emerald-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                    className="flex-1 md:flex-none bg-emerald-50 text-emerald-700 border border-emerald-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2 group shadow-sm active:scale-95"
                   >
-                    <Shield className="w-3 h-3 fill-current" /> Min Ryzyko
+                    <Shield className="w-3 h-3 fill-emerald-500 text-emerald-500 group-hover:fill-white group-hover:text-white transition-colors" /> Min Ryzyko
                   </button>
                 </div>
               )}
@@ -308,7 +323,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Podsumowanie punktów kluczowych */}
           {results && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">

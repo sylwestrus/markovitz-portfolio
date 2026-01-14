@@ -2,42 +2,60 @@
 import { Asset, PortfolioPoint, OptimizationResults } from './types';
 
 export function calculatePortfolioStats(weights: number[], assets: Asset[], correlationMatrix: number[][]): { expectedReturn: number, volatility: number, sharpeRatio: number, dividendYield: number } {
-  const expectedReturn = weights.reduce((sum, w, i) => sum + w * assets[i].expectedReturn, 0);
-  const dividendYield = weights.reduce((sum, w, i) => sum + w * (assets[i].dividendYield || 0), 0);
+  let expectedReturn = 0;
+  let dividendYield = 0;
+  const n = weights.length;
+
+  for (let i = 0; i < n; i++) {
+    expectedReturn += weights[i] * assets[i].expectedReturn;
+    dividendYield += weights[i] * (assets[i].dividendYield || 0);
+  }
   
   let variance = 0;
-  for (let i = 0; i < weights.length; i++) {
-    for (let j = 0; j < weights.length; j++) {
-      variance += weights[i] * weights[j] * assets[i].volatility * assets[j].volatility * correlationMatrix[i][j];
+  for (let i = 0; i < n; i++) {
+    const wi_vi = weights[i] * assets[i].volatility;
+    for (let j = 0; j < n; j++) {
+      // Optymalizacja: wyciągnięcie stałych przed wewnętrzną pętlę lub pre-kalkulacja
+      variance += wi_vi * (weights[j] * assets[j].volatility) * correlationMatrix[i][j];
     }
   }
   
   const volatility = Math.sqrt(variance);
-  const rf = 0.02; // Risk-free rate 2%
-  const sharpeRatio = volatility > 0 ? (expectedReturn - rf) / volatility : 0;
+  const rf = 0.02; 
+  const sharpeRatio = volatility > 0.0001 ? (expectedReturn - rf) / volatility : 0;
   
   return { expectedReturn, volatility, sharpeRatio, dividendYield };
 }
 
 export function generateEfficientFrontier(assets: Asset[], correlationMatrix: number[][]): OptimizationResults {
-  const points: PortfolioPoint[] = [];
   const numSimulations = 3000; 
+  const points: PortfolioPoint[] = new Array(numSimulations);
+  const n = assets.length;
   
-  let minRisk: PortfolioPoint | null = null;
-  let maxSharpe: PortfolioPoint | null = null;
+  let minRiskPoint: PortfolioPoint | null = null;
+  let maxSharpePoint: PortfolioPoint | null = null;
 
   for (let s = 0; s < numSimulations; s++) {
-    const rawWeights = assets.map(() => Math.random());
-    const sumWeights = rawWeights.reduce((a, b) => a + b, 0);
-    const weights = rawWeights.map(w => w / sumWeights);
+    const weights = new Array(n);
+    let sumWeights = 0;
+    
+    for (let i = 0; i < n; i++) {
+      const w = Math.random();
+      weights[i] = w;
+      sumWeights += w;
+    }
+    
+    for (let i = 0; i < n; i++) {
+      weights[i] /= sumWeights;
+    }
     
     const stats = calculatePortfolioStats(weights, assets, correlationMatrix);
     const point: PortfolioPoint = { ...stats, weights };
     
-    points.push(point);
+    points[s] = point;
     
-    if (!minRisk || point.volatility < minRisk.volatility) minRisk = point;
-    if (!maxSharpe || point.sharpeRatio > maxSharpe.sharpeRatio) maxSharpe = point;
+    if (!minRiskPoint || stats.volatility < minRiskPoint.volatility) minRiskPoint = point;
+    if (!maxSharpePoint || stats.sharpeRatio > maxSharpePoint.sharpeRatio) maxSharpePoint = point;
   }
 
   const userWeights = assets.map(a => a.weight);
@@ -46,8 +64,8 @@ export function generateEfficientFrontier(assets: Asset[], correlationMatrix: nu
 
   return {
     userPortfolio,
-    minRiskPortfolio: { ...minRisk!, label: 'Portfel Min. Ryzyka' },
-    maxSharpePortfolio: { ...maxSharpe!, label: 'Portfel Max. Sharpe' },
+    minRiskPortfolio: { ...minRiskPoint!, label: 'Portfel Min. Ryzyka' },
+    maxSharpePortfolio: { ...maxSharpePoint!, label: 'Portfel Max. Sharpe' },
     efficientFrontier: points,
     correlationMatrix
   };

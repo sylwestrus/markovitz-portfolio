@@ -1,5 +1,5 @@
 {
-  "name": "Markowitz Portfolio Optimizer",
-  "description": "An advanced investment tool that calculates portfolio returns, risk, and generates the Markowitz Efficient Frontier based on user-defined assets and weights.",
+  "name": "Markowitz AI: Quantum Portfolio Builder",
+  "description": "Profesjonalne narzędzie do kwantytatywnej analizy portfela inwestycyjnego. Wykorzystuje model średniej-wariancji Harry'ego Markowitza do wyznaczania granicy efektywnej oraz sztuczną inteligencję Gemini do analizy korelacji i oceny ryzyka sektorowego dla spółek technologicznych.",
   "requestFramePermissions": []
 }

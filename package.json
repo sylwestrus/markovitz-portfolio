@@ -1,5 +1,5 @@
 {
-  "name": "markowitz-portfolio-optimizer",
+  "name": "markowitz-ai:-quantum-portfolio-builder",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,7 +13,8 @@
     "react-dom": "^19.2.3",
     "recharts": "^3.6.0",
     "lucide-react": "^0.562.0",
-    "@google/genai": "^1.35.0"
+    "@google/genai": "^1.35.0",
+    "html-to-image": "^1.11.11"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

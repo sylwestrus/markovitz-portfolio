@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Asset, OptimizationResults, PortfolioPoint } from './types';
 import { generateEfficientFrontier } from './mathUtils';
 import { searchTickerData } from './geminiService';
@@ -24,8 +24,16 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [tickerInput, setTickerInput] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
 
   const totalWeight = useMemo(() => assets.reduce((sum, a) => sum + a.weight, 0), [assets]);
+
+  // Śledzenie zmian, aby wymusić "Oblicz ponownie"
+  useEffect(() => {
+    if (results) {
+      setIsDirty(true);
+    }
+  }, [assets]);
 
   const normalizeWeights = () => {
     if (totalWeight === 0) return;
@@ -44,6 +52,8 @@ const App: React.FC = () => {
       ...asset,
       weight: point.weights[index]
     })));
+    // Zapobiegamy isDirty przy samej aplikacji wag z wyników
+    setTimeout(() => setIsDirty(false), 50);
   };
 
   const handleSearchAndAdd = async (e: React.FormEvent) => {
@@ -97,15 +107,16 @@ const App: React.FC = () => {
     }
     setLoading(true);
     const size = assets.length;
+    // Stała macierz korelacji 0.35 dla uproszczenia (zgodnie z poprzednią logiką)
     const matrix = Array(size).fill(0).map((_, i) => 
       Array(size).fill(0).map((_, j) => i === j ? 1 : 0.35)
     );
     try {
-      // Symulacja trwa krótko, ale dajemy Loader dla UX
       setTimeout(() => {
         const res = generateEfficientFrontier(assets, matrix);
         setResults(res);
         setLoading(false);
+        setIsDirty(false);
       }, 500);
     } catch (err) {
       console.error(err);
@@ -126,7 +137,7 @@ const App: React.FC = () => {
               Portfolio <span className="text-blue-600 italic">Optima</span>
             </h1>
             <p className="text-slate-500 font-medium text-lg max-w-xl leading-snug">
-              Matematyczna optymalizacja portfela metodą Markowitza. Obliczanie granicy efektywnej (Efficient Frontier) na bazie 3,000 symulacji.
+              Matematyczna optymalizacja portfela metodą Markowitza. Obliczanie granicy efektywnej na bazie symulacji Monte Carlo.
             </p>
           </div>
         </div>
@@ -229,7 +240,7 @@ const App: React.FC = () => {
                 className="bg-slate-900 text-white px-10 py-5 rounded-2xl font-black text-sm tracking-widest uppercase shadow-xl hover:bg-black transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />}
-                Optymalizuj
+                {results && isDirty ? "Oblicz ponownie" : "Oblicz"}
               </button>
             </div>
           </div>
@@ -241,8 +252,8 @@ const App: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <h3 className="text-2xl font-black flex items-center gap-3"><TrendingUp className="text-blue-600" /> Wyniki Symulacji</h3>
               
-              {results && (
-                <div className="flex gap-2 w-full md:w-auto">
+              {results && !isDirty && (
+                <div className="flex gap-2 w-full md:w-auto animate-in fade-in slide-in-from-right-4 duration-500">
                   <button 
                     onClick={() => applyOptimizedWeights(results.maxSharpePortfolio)}
                     className="flex-1 md:flex-none bg-amber-50 text-amber-700 border border-amber-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center gap-2"
@@ -291,13 +302,13 @@ const App: React.FC = () => {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-3">
                   <Target className="w-12 h-12 opacity-20" />
-                  <p className="font-black uppercase tracking-widest italic text-xs">Ustaw wagi i kliknij Optymalizuj</p>
+                  <p className="font-black uppercase tracking-widest italic text-xs">Ustaw wagi i kliknij Oblicz</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Podsumowanie punktów kluczowych (zamiast raportu AI) */}
+          {/* Podsumowanie punktów kluczowych */}
           {results && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">

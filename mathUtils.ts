@@ -1,6 +1,14 @@
 
 import { Asset, PortfolioPoint, OptimizationResults } from './types';
 
+// Prosty generator pseudo-losowy z ziarnem dla powtarzalności wyników
+function seededRandom(seed: number) {
+  return function() {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+}
+
 export function calculatePortfolioStats(weights: number[], assets: Asset[], correlationMatrix: number[][]): { expectedReturn: number, volatility: number, sharpeRatio: number, dividendYield: number } {
   const expectedReturn = weights.reduce((sum, w, i) => sum + w * assets[i].expectedReturn, 0);
   const dividendYield = weights.reduce((sum, w, i) => sum + w * (assets[i].dividendYield || 0), 0);
@@ -23,11 +31,15 @@ export function generateEfficientFrontier(assets: Asset[], correlationMatrix: nu
   const points: PortfolioPoint[] = [];
   const numSimulations = 3000; 
   
+  // Używamy stałego ziarna opartego na nazwach tickerów, aby wyniki były spójne dla tego samego zestawu spółek
+  const seedBase = assets.map(a => a.ticker).join('').length || 42;
+  const rng = seededRandom(seedBase);
+
   let minRisk: PortfolioPoint | null = null;
   let maxSharpe: PortfolioPoint | null = null;
 
   for (let s = 0; s < numSimulations; s++) {
-    const rawWeights = assets.map(() => Math.random());
+    const rawWeights = assets.map(() => rng());
     const sumWeights = rawWeights.reduce((a, b) => a + b, 0);
     const weights = rawWeights.map(w => w / sumWeights);
     

@@ -1,0 +1,5 @@
+{
+  "name": "Markowitz Portfolio Optimizer",
+  "description": "An advanced investment tool that calculates portfolio returns, risk, and generates the Markowitz Efficient Frontier based on user-defined assets and weights.",
+  "requestFramePermissions": []
+}

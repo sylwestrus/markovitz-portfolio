@@ -110,7 +110,7 @@ const App: React.FC = () => {
                       <label className="text-[9px] font-black text-slate-400 uppercase">Waga %</label>
                       <input 
                         type="number"
-                        className="w-full bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none py-1 text-sm"
+                        className="w-full bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none py-1 text-sm font-semibold"
                         value={Math.round(asset.weight * 1000) / 10}
                         onChange={(e) => updateAsset(asset.id, 'weight', Number(e.target.value) / 100)}
                       />
@@ -119,7 +119,7 @@ const App: React.FC = () => {
                       <label className="text-[9px] font-black text-slate-400 uppercase">Zwrot %</label>
                       <input 
                         type="number"
-                        className="w-full bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none py-1 text-sm"
+                        className="w-full bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none py-1 text-sm font-semibold"
                         value={asset.expectedReturn * 100}
                         onChange={(e) => updateAsset(asset.id, 'expectedReturn', Number(e.target.value) / 100)}
                       />
@@ -128,7 +128,7 @@ const App: React.FC = () => {
                       <label className="text-[9px] font-black text-slate-400 uppercase">Ryzyko %</label>
                       <input 
                         type="number"
-                        className="w-full bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none py-1 text-sm"
+                        className="w-full bg-transparent border-b border-slate-200 focus:border-blue-500 outline-none py-1 text-sm font-semibold"
                         value={asset.volatility * 100}
                         onChange={(e) => updateAsset(asset.id, 'volatility', Number(e.target.value) / 100)}
                       />
@@ -165,48 +165,56 @@ const App: React.FC = () => {
 
         <section className="lg:col-span-7 space-y-8">
           <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
               <TrendingUp className="w-6 h-6 text-green-500" />
               Krzywa Efektywna Markowitza
             </h3>
-            <div className="h-[400px] w-full">
+            <div className="h-[450px] w-full">
               {results ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
+                  <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: -20 }}>
                     <XAxis 
                       type="number" 
                       dataKey="volatility" 
+                      name="Ryzyko (Odchylenie)" 
                       unit="%" 
                       domain={['dataMin - 0.02', 'dataMax + 0.02']}
                       tickFormatter={(val) => (val * 100).toFixed(0)}
-                      stroke="#94a3b8"
-                      fontSize={12}
+                      stroke="#64748b"
+                      fontSize={11}
+                      label={{ value: 'Ryzyko (Zmienność)', position: 'insideBottom', offset: -10, fontSize: 10, fontWeight: 'bold' }}
                     />
                     <YAxis 
                       type="number" 
                       dataKey="expectedReturn" 
+                      name="Oczekiwany Zwrot" 
                       unit="%" 
                       domain={['dataMin - 0.01', 'dataMax + 0.01']}
                       tickFormatter={(val) => (val * 100).toFixed(1)}
-                      stroke="#94a3b8"
-                      fontSize={12}
+                      stroke="#64748b"
+                      fontSize={11}
+                      label={{ value: 'Oczekiwany Zwrot', angle: -90, position: 'insideLeft', offset: 10, fontSize: 10, fontWeight: 'bold' }}
                     />
-                    <ZAxis range={[50, 50]} />
+                    <ZAxis range={[60, 200]} />
                     <Tooltip 
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const d = payload[0].payload;
                           return (
-                            <div className="bg-white/95 backdrop-blur-sm p-4 border border-slate-200 shadow-2xl rounded-2xl">
-                              <p className="font-black text-slate-900 border-b border-slate-100 mb-2 pb-1">{d.label || 'Symulacja'}</p>
-                              <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                                <div>
-                                  <p className="text-slate-400">ZWROT</p>
-                                  <p className="text-blue-600 text-sm">{(d.expectedReturn * 100).toFixed(2)}%</p>
+                            <div className="bg-white/95 backdrop-blur-md p-4 border border-slate-200 shadow-2xl rounded-2xl ring-1 ring-black/5">
+                              <p className="font-black text-slate-900 border-b border-slate-100 mb-2 pb-1 text-xs">{d.label || 'Kombinacja Wag'}</p>
+                              <div className="space-y-2">
+                                <div className="flex justify-between gap-8 text-[10px] font-bold">
+                                  <span className="text-slate-400 uppercase">Zwrot (E)</span>
+                                  <span className="text-blue-600">{(d.expectedReturn * 100).toFixed(2)}%</span>
                                 </div>
-                                <div>
-                                  <p className="text-slate-400">RYZYKO</p>
-                                  <p className="text-orange-500 text-sm">{(d.volatility * 100).toFixed(2)}%</p>
+                                <div className="flex justify-between gap-8 text-[10px] font-bold">
+                                  <span className="text-slate-400 uppercase">Ryzyko (σ)</span>
+                                  <span className="text-orange-500">{(d.volatility * 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="flex justify-between gap-8 text-[10px] font-bold pt-1 border-t border-slate-50">
+                                  <span className="text-slate-400 uppercase">Wsk. Sharpe'a</span>
+                                  <span className="text-indigo-600">{d.sharpeRatio.toFixed(3)}</span>
                                 </div>
                               </div>
                             </div>
@@ -215,17 +223,43 @@ const App: React.FC = () => {
                         return null;
                       }}
                     />
-                    <Legend verticalAlign="top" iconType="diamond" wrapperStyle={{paddingBottom: '20px'}} />
-                    <Scatter name="Kombinacje" data={results.efficientFrontier} fill="#f1f5f9" opacity={0.6} />
-                    <Scatter name="Max Sharpe (Cel)" data={[results.maxSharpePortfolio]} fill="#f59e0b" />
-                    <Scatter name="Min Ryzyko" data={[results.minRiskPortfolio]} fill="#10b981" />
-                    <Scatter name="Twój Portfel" data={[results.userPortfolio]} fill="#2563eb" />
+                    <Legend 
+                      verticalAlign="top" 
+                      align="right"
+                      iconType="circle" 
+                      wrapperStyle={{ paddingBottom: '30px', fontSize: '11px', fontWeight: 'bold' }}
+                      formatter={(value) => <span className="text-slate-700">{value}</span>}
+                    />
+                    <Scatter 
+                      name="Możliwe Kombinacje" 
+                      data={results.efficientFrontier} 
+                      fill="#cbd5e1" 
+                      opacity={0.3} 
+                    />
+                    <Scatter 
+                      name="Optimum (Wysoki Sharpe)" 
+                      data={[results.maxSharpePortfolio]} 
+                      fill="#f59e0b" 
+                      shape="diamond"
+                    />
+                    <Scatter 
+                      name="Najniższe Ryzyko" 
+                      data={[results.minRiskPortfolio]} 
+                      fill="#10b981" 
+                      shape="star"
+                    />
+                    <Scatter 
+                      name="Twój Obecny Portfel" 
+                      data={[results.userPortfolio]} 
+                      fill="#2563eb" 
+                      shape="cross"
+                    />
                   </ScatterChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-slate-300 border-4 border-dashed border-slate-50 rounded-3xl">
                   <Target className="w-16 h-16 mb-4 opacity-10" />
-                  <p className="font-bold">Uruchom optymalizację, aby zobaczyć krzywą.</p>
+                  <p className="font-bold">Uruchom analizę, aby wygenerować mapę ryzyka i zysku.</p>
                 </div>
               )}
             </div>
@@ -234,20 +268,20 @@ const App: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
               <Zap className="w-6 h-6 text-yellow-500" />
-              Analiza i Sugerowane Wagi (AI)
+              Strategia Dywidendowa i Analiza AI
             </h3>
             {loading ? (
               <div className="py-20 flex flex-col items-center justify-center space-y-4">
                 <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-                <p className="text-slate-500 font-bold animate-pulse">Przeliczanie strategii dywidendowej...</p>
+                <p className="text-slate-500 font-bold animate-pulse text-sm">Przeszukiwanie granicy efektywnej...</p>
               </div>
             ) : aiInsight ? (
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto custom-scrollbar">
-                <div className="prose prose-slate prose-sm" dangerouslySetInnerHTML={{ __html: formatAiText(aiInsight) }} />
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto custom-scrollbar shadow-inner">
+                <div className="prose prose-slate prose-sm max-w-none ai-content" dangerouslySetInnerHTML={{ __html: formatAiText(aiInsight) }} />
               </div>
             ) : (
-              <div className="text-center py-12">
-                <p className="text-slate-400 font-medium italic">Model AI podpowie Ci, jak zmienić wagi, by zoptymalizować dywidendy i zysk.</p>
+              <div className="text-center py-12 border-2 border-dashed border-slate-50 rounded-2xl">
+                <p className="text-slate-400 font-medium italic text-sm">System Markowitza podpowie Ci, jak zoptymalizować wagi pod kątem dywidend i bezpieczeństwa.</p>
               </div>
             )}
           </div>

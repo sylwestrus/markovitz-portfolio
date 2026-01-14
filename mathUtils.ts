@@ -1,8 +1,9 @@
 
 import { Asset, PortfolioPoint, OptimizationResults } from './types';
 
-export function calculatePortfolioStats(weights: number[], assets: Asset[], correlationMatrix: number[][]): { expectedReturn: number, volatility: number, sharpeRatio: number } {
+export function calculatePortfolioStats(weights: number[], assets: Asset[], correlationMatrix: number[][]): { expectedReturn: number, volatility: number, sharpeRatio: number, dividendYield: number } {
   const expectedReturn = weights.reduce((sum, w, i) => sum + w * assets[i].expectedReturn, 0);
+  const dividendYield = weights.reduce((sum, w, i) => sum + w * (assets[i].dividendYield || 0), 0);
   
   let variance = 0;
   for (let i = 0; i < weights.length; i++) {
@@ -15,12 +16,12 @@ export function calculatePortfolioStats(weights: number[], assets: Asset[], corr
   const rf = 0.02; // Risk-free rate 2%
   const sharpeRatio = volatility > 0 ? (expectedReturn - rf) / volatility : 0;
   
-  return { expectedReturn, volatility, sharpeRatio };
+  return { expectedReturn, volatility, sharpeRatio, dividendYield };
 }
 
 export function generateEfficientFrontier(assets: Asset[], correlationMatrix: number[][]): OptimizationResults {
   const points: PortfolioPoint[] = [];
-  const numSimulations = 2500; // Increased for better curve
+  const numSimulations = 3000; 
   
   let minRisk: PortfolioPoint | null = null;
   let maxSharpe: PortfolioPoint | null = null;

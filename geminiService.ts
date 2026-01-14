@@ -9,22 +9,18 @@ export async function getAiPortfolioAnalysis(assets: Asset[], results: Optimizat
     Działaj jako ekspert ds. inwestycji na rynku brytyjskim (LSE) i specjalista od teorii Markowitza.
     
     Analizowany portfel (spółki dywidendowe):
-    ${assets.map(a => `${a.ticker}: Waga ${(a.weight * 100).toFixed(2)}%, Zwrot ${(a.expectedReturn * 100).toFixed(2)}%, Ryzyko ${(a.volatility * 100).toFixed(2)}%`).join('\n')}
+    ${assets.map(a => `${a.ticker}: Waga ${(a.weight * 100).toFixed(2)}%, Zwrot ${(a.expectedReturn * 100).toFixed(2)}%, Ryzyko ${(a.volatility * 100).toFixed(2)}%, Dywidenda: ${(a.dividendYield * 100).toFixed(2)}%`).join('\n')}
     
     Wyniki obliczeń matematycznych:
-    - Portfel Użytkownika: Zwrot ${(results.userPortfolio.expectedReturn * 100).toFixed(2)}%, Ryzyko ${(results.userPortfolio.volatility * 100).toFixed(2)}%, Sharpe: ${results.userPortfolio.sharpeRatio.toFixed(2)}
-    - Portfel Minimalnego Ryzyka (Min Risk): Zwrot ${(results.minRiskPortfolio.expectedReturn * 100).toFixed(2)}%, Ryzyko ${(results.minRiskPortfolio.volatility * 100).toFixed(2)}%
-    - Portfel Optymalny (Max Sharpe): Zwrot ${(results.maxSharpePortfolio.expectedReturn * 100).toFixed(2)}%, Ryzyko ${(results.maxSharpePortfolio.volatility * 100).toFixed(2)}%
+    - Portfel Użytkownika: Zwrot Total ${(results.userPortfolio.expectedReturn * 100).toFixed(2)}% (w tym dywidenda ok. ${(results.userPortfolio.dividendYield! * 100).toFixed(2)}%), Ryzyko ${(results.userPortfolio.volatility * 100).toFixed(2)}%, Sharpe: ${results.userPortfolio.sharpeRatio.toFixed(2)}
+    - Portfel Max Sharpe: Zwrot ${(results.maxSharpePortfolio.expectedReturn * 100).toFixed(2)}%, Ryzyko ${(results.maxSharpePortfolio.volatility * 100).toFixed(2)}%
     
     Zadanie:
-    1. Oceń obecne wagi. Czy przewaga Unilever i National Grid (spółki defensywne) jest uzasadniona przy obecnej alokacji w Shell i spółki finansowe?
-    2. Zaproponuj konkretne, "idealne" wagi, biorąc pod uwagę:
-       - Maksymalizację stopy zwrotu przy akceptowalnym ryzyku.
-       - Charakter dywidendowy spółek (np. stabilność National Grid vs wysoka stopa Phoenix Group).
-       - Rebalansowanie w stronę punktu "Max Sharpe" na krzywej Markowitza.
-    3. Wskaż, która spółka jest obecnie "najdroższa" w sensie ryzyka (wnosi najwięcej zmienności w stosunku do oferowanego zwrotu).
+    1. Oceń obecne wagi pod kątem "Dividend Growth" oraz stabilności wypłat.
+    2. Zaproponuj konkretne wagi, które balansują wysoki Yield (np. z Phoenix czy M&G) z bezpieczeństwem (Unilever/National Grid) i wzrostem (Shell).
+    3. Wskaż, czy pogoń za najwyższą dywidendą w tym zestawieniu nie psuje zbytnio wskaźnika Sharpe'a (efektywności).
     
-    Odpowiedz po polsku. Użyj profesjonalnego języka, Markdown, pogrubień i list punktowych.
+    Odpowiedz po polsku. Użyj Markdown, pogrubień i profesjonalnego tonu.
   `;
 
   try {

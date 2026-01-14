@@ -5,6 +5,7 @@ export interface Asset {
   weight: number;
   expectedReturn: number;
   volatility: number;
+  dividendYield: number; // Added field for expected dividend yield
 }
 
 export interface PortfolioPoint {
@@ -12,6 +13,7 @@ export interface PortfolioPoint {
   volatility: number;
   sharpeRatio: number;
   weights: number[];
+  dividendYield?: number;
   label?: string;
 }
 

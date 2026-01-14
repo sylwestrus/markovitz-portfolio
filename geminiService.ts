@@ -6,11 +6,12 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export async function searchTickerData(ticker: string): Promise<Partial<Asset>> {
   const prompt = `Zidentyfikuj spółkę o tickerze: ${ticker}. 
-    Zwróć dane finansowe potrzebne do modelu Markowitza w formacie JSON.
-    Szacowany roczny zwrot (expectedReturn) jako ułamek (np. 0.15 dla 15%), 
-    roczna zmienność (volatility) jako ułamek (np. 0.3 dla 30%),
-    oraz stopa dywidendy (dividendYield) jako ułamek.
-    Bazuj na danych historycznych i prognozach analityków.`;
+    Zwróć dane finansowe w formacie JSON:
+    - expectedReturn: roczny zwrot (np. 0.15)
+    - volatility: zmienność (np. 0.3)
+    - dividendYield: stopa dywidendy (np. 0.01)
+    - sector: nazwa sektora (np. 'Technology', 'Space', 'Crypto')
+    Bazuj na aktualnych danych rynkowych.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -25,6 +26,7 @@ export async function searchTickerData(ticker: string): Promise<Partial<Asset>> 
             expectedReturn: { type: Type.NUMBER },
             volatility: { type: Type.NUMBER },
             dividendYield: { type: Type.NUMBER },
+            sector: { type: Type.STRING }
           },
           required: ["ticker", "expectedReturn", "volatility", "dividendYield"]
         }
@@ -45,31 +47,29 @@ export async function searchTickerData(ticker: string): Promise<Partial<Asset>> 
 
 export async function getAiPortfolioAnalysis(assets: Asset[], results: OptimizationResults): Promise<string> {
   const prompt = `
-    Działaj jako ekspert analizy portfelowej (teoria Markowitza i Sharpe'a).
+    Działaj jako Quant Strategist & AI Portfolio Advisor.
+    Przeanalizuj portfel:
+    ${assets.map(a => `${a.ticker}: Waga ${(a.weight * 100).toFixed(1)}%, Ryzyko ${(a.volatility * 100).toFixed(1)}%`).join('\n')}
     
-    Portfel użytkownika:
-    ${assets.map(a => `${a.ticker}: waga ${(a.weight * 100).toFixed(1)}%`).join(', ')}
-    
-    Parametry portfela:
+    Wskaźniki portfela:
     - Oczekiwany zwrot: ${(results.userPortfolio.expectedReturn * 100).toFixed(2)}%
-    - Ryzyko (odchylenie standardowe): ${(results.userPortfolio.volatility * 100).toFixed(2)}%
-    - Wskaźnik Sharpe'a: ${results.userPortfolio.sharpeRatio.toFixed(2)}
+    - Zmienność: ${(results.userPortfolio.volatility * 100).toFixed(2)}%
+    - Sharpe Ratio: ${results.userPortfolio.sharpeRatio.toFixed(2)}
     
     Zadanie:
-    1. Oceń dywersyfikację (czy korelacja między spółkami nie jest zbyt wysoka?).
-    2. Odnieś się do "Granicy Efektywnej" – jak blisko niej znajduje się ten portfel?
-    3. Czy portfel jest "agresywny" (wysoka beta) czy "defensywny" w rozumieniu modelu Sharpe'a?
-    4. Podaj konkretną rekomendację zmiany wag, aby przesunąć portfel w górę i w lewo na mapie ryzyko-zysk.
-    
-    Odpowiedz w języku polskim, używając profesjonalnej terminologii (alfa, beta, dywersyfikacja, ryzyko specyficzne).
+    1. Oceń dywersyfikację sektorową.
+    2. Wskaż najsłabsze ogniwo (najniższy Sharpe marginalny).
+    3. Zaproponuj konkretne zmiany wag dla poprawy stabilności.
+    Odpowiedz w Markdown po polsku.
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
+      config: { thinkingConfig: { thinkingBudget: 2000 } }
     });
-    return response.text;
+    return response.text || "Błąd analizy.";
   } catch (error) {
     return "Analiza AI obecnie niedostępna.";
   }

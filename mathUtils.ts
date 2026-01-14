@@ -6,22 +6,29 @@ export function calculatePortfolioStats(weights: number[], assets: Asset[], corr
   let dividendYield = 0;
   const n = weights.length;
 
+  // Cache assets data into arrays for faster access in tight loops
   for (let i = 0; i < n; i++) {
-    expectedReturn += weights[i] * assets[i].expectedReturn;
-    dividendYield += weights[i] * (assets[i].dividendYield || 0);
+    const w = weights[i];
+    const asset = assets[i];
+    expectedReturn += w * asset.expectedReturn;
+    dividendYield += w * (asset.dividendYield || 0);
   }
   
   let variance = 0;
   for (let i = 0; i < n; i++) {
-    const wi_vi = weights[i] * assets[i].volatility;
+    const wi = weights[i];
+    const vi = assets[i].volatility;
+    const wi_vi = wi * vi;
+    
+    // Inner loop optimization
+    const row = correlationMatrix[i];
     for (let j = 0; j < n; j++) {
-      // Optymalizacja: wyciągnięcie stałych przed wewnętrzną pętlę lub pre-kalkulacja
-      variance += wi_vi * (weights[j] * assets[j].volatility) * correlationMatrix[i][j];
+      variance += wi_vi * (weights[j] * assets[j].volatility) * row[j];
     }
   }
   
   const volatility = Math.sqrt(variance);
-  const rf = 0.02; 
+  const rf = 0.02; // Risk-free rate
   const sharpeRatio = volatility > 0.0001 ? (expectedReturn - rf) / volatility : 0;
   
   return { expectedReturn, volatility, sharpeRatio, dividendYield };
@@ -32,11 +39,13 @@ export function generateEfficientFrontier(assets: Asset[], correlationMatrix: nu
   const points: PortfolioPoint[] = new Array(numSimulations);
   const n = assets.length;
   
+  if (n === 0) throw new Error("No assets provided for optimization");
+
   let minRiskPoint: PortfolioPoint | null = null;
   let maxSharpePoint: PortfolioPoint | null = null;
 
   for (let s = 0; s < numSimulations; s++) {
-    const weights = new Array(n);
+    const weights = new Float64Array(n);
     let sumWeights = 0;
     
     for (let i = 0; i < n; i++) {
@@ -45,12 +54,14 @@ export function generateEfficientFrontier(assets: Asset[], correlationMatrix: nu
       sumWeights += w;
     }
     
+    // Normalize weights
+    const normalizedWeights = new Array(n);
     for (let i = 0; i < n; i++) {
-      weights[i] /= sumWeights;
+      normalizedWeights[i] = weights[i] / sumWeights;
     }
     
-    const stats = calculatePortfolioStats(weights, assets, correlationMatrix);
-    const point: PortfolioPoint = { ...stats, weights };
+    const stats = calculatePortfolioStats(normalizedWeights, assets, correlationMatrix);
+    const point: PortfolioPoint = { ...stats, weights: normalizedWeights };
     
     points[s] = point;
     

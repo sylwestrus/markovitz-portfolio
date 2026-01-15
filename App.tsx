@@ -26,12 +26,10 @@ const App: React.FC = () => {
   const [tickerInput, setTickerInput] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   
-  // Ref do śledzenia czy zmiana assetów pochodzi z przycisku optymalizacji
   const isApplyingOptimization = useRef(false);
 
   const totalWeight = useMemo(() => assets.reduce((sum, a) => sum + a.weight, 0), [assets]);
 
-  // Śledzenie zmian, aby wymusić "Oblicz ponownie"
   useEffect(() => {
     if (results) {
       if (isApplyingOptimization.current) {
@@ -45,12 +43,12 @@ const App: React.FC = () => {
 
   const normalizeWeights = () => {
     if (totalWeight === 0) return;
-    setAssets(prev => prev.map(a => ({ ...a, weight: a.weight / totalWeight })));
+    setAssets(prev => prev.map(a => ({ ...a, weight: Math.round((a.weight / totalWeight) * 100) / 100 })));
   };
 
   const equalizeWeights = () => {
     if (assets.length === 0) return;
-    const equalWeight = 1 / assets.length;
+    const equalWeight = Math.floor(100 / assets.length) / 100;
     setAssets(prev => prev.map(a => ({ ...a, weight: equalWeight })));
   };
 
@@ -60,10 +58,9 @@ const App: React.FC = () => {
     isApplyingOptimization.current = true;
     setAssets(prev => prev.map((asset, index) => ({
       ...asset,
-      weight: point.weights[index]
+      weight: Math.round(point.weights[index] * 100) / 100
     })));
     
-    // Nadpisujemy userPortfolio w wynikach, aby wykres odświeżył pozycję "Twój Portfel"
     setResults(prev => prev ? {
       ...prev,
       userPortfolio: {
@@ -104,10 +101,10 @@ const App: React.FC = () => {
     const headers = ['Ticker', 'Waga %', 'Zwrot %', 'Ryzyko %', 'Dywidenda %'].join('\t');
     const rows = assets.map(a => [
       a.ticker,
-      (a.weight * 100).toFixed(2),
-      (a.expectedReturn * 100).toFixed(2),
-      (a.volatility * 100).toFixed(2),
-      (a.dividendYield * 100).toFixed(2)
+      Math.round(a.weight * 100),
+      Math.round(a.expectedReturn * 100),
+      Math.round(a.volatility * 100),
+      Math.round(a.dividendYield * 100)
     ].join('\t')).join('\n');
     const blob = new Blob([`${headers}\n${rows}`], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -128,7 +125,6 @@ const App: React.FC = () => {
       Array(size).fill(0).map((_, j) => i === j ? 1 : 0.35)
     );
     try {
-      // Symulacja z lekkim opóźnieniem dla lepszego UX
       setTimeout(() => {
         const res = generateEfficientFrontier(assets, matrix);
         setResults(res);
@@ -154,7 +150,7 @@ const App: React.FC = () => {
               Portfolio <span className="text-blue-600 italic">Optima</span>
             </h1>
             <p className="text-slate-500 font-medium text-lg max-w-xl leading-snug">
-              Matematyczna optymalizacja portfela metodą Markowitza. Obliczanie granicy efektywnej na bazie symulacji Monte Carlo.
+              Matematyczna optymalizacja portfela metodą Markowitza. Pełne procenty i granica efektywna.
             </p>
           </div>
         </div>
@@ -166,7 +162,7 @@ const App: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-black text-slate-900">Aktywa</h2>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Konfiguracja wag</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Konfiguracja (krok 1%)</p>
               </div>
               <button 
                 onClick={normalizeWeights} 
@@ -216,9 +212,14 @@ const App: React.FC = () => {
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <span className="font-black text-slate-900 text-lg tracking-tight">{asset.ticker}</span>
-                      <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100">
-                        {(asset.expectedReturn * 100).toFixed(0)}% zwrot
-                      </span>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                          {Math.round(asset.expectedReturn * 100)}% zwrot
+                        </span>
+                        <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                          {Math.round(asset.volatility * 100)}% ryzyko
+                        </span>
+                      </div>
                     </div>
                     <button 
                       onClick={() => setAssets(prev => prev.filter(a => a.id !== asset.id))} 
@@ -232,12 +233,12 @@ const App: React.FC = () => {
                       type="range" 
                       min="0" 
                       max="1" 
-                      step="0.001" 
+                      step="0.01" 
                       value={asset.weight} 
                       onChange={(e) => updateAsset(asset.id, 'weight', parseFloat(e.target.value))} 
                       className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" 
                     />
-                    <span className="w-14 text-right font-black text-slate-700 text-xs">{(asset.weight * 100).toFixed(1)}%</span>
+                    <span className="w-14 text-right font-black text-slate-700 text-xs">{Math.round(asset.weight * 100)}%</span>
                   </div>
                 </div>
               ))}
@@ -247,7 +248,7 @@ const App: React.FC = () => {
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Suma kapitału</p>
                 <p className={`text-3xl font-black ${Math.abs(totalWeight - 1) < 0.01 ? 'text-emerald-500' : 'text-slate-900'}`}>
-                  {(totalWeight * 100).toFixed(1)}%
+                  {Math.round(totalWeight * 100)}%
                 </p>
               </div>
               <button 
@@ -289,8 +290,8 @@ const App: React.FC = () => {
               {results ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: -20 }}>
-                    <XAxis type="number" dataKey="volatility" tickFormatter={(val) => (val * 100).toFixed(0)} stroke="#94a3b8" fontSize={11} name="Ryzyko" />
-                    <YAxis type="number" dataKey="expectedReturn" tickFormatter={(val) => (val * 100).toFixed(0)} stroke="#94a3b8" fontSize={11} name="Zwrot" />
+                    <XAxis type="number" dataKey="volatility" tickFormatter={(val) => Math.round(val * 100).toString()} stroke="#94a3b8" fontSize={11} name="Ryzyko" />
+                    <YAxis type="number" dataKey="expectedReturn" tickFormatter={(val) => Math.round(val * 100).toString()} stroke="#94a3b8" fontSize={11} name="Zwrot" />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ active, payload }) => {
                         if (active && payload?.[0]) {
                           const d = payload[0].payload;
@@ -298,8 +299,8 @@ const App: React.FC = () => {
                             <div className="bg-white p-4 border rounded-2xl shadow-2xl text-[10px] font-bold ring-4 ring-slate-50">
                               <p className="text-slate-900 mb-2 border-b pb-1 uppercase tracking-tighter">{d.label || 'Kombinacja Wariancji'}</p>
                               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                <span className="text-slate-400">ZWROT:</span> <span className="text-blue-600">{(d.expectedReturn * 100).toFixed(2)}%</span>
-                                <span className="text-slate-400">RYZYKO:</span> <span className="text-red-500">{(d.volatility * 100).toFixed(2)}%</span>
+                                <span className="text-slate-400">ZWROT:</span> <span className="text-blue-600">{Math.round(d.expectedReturn * 100)}%</span>
+                                <span className="text-slate-400">RYZYKO:</span> <span className="text-red-500">{Math.round(d.volatility * 100)}%</span>
                                 <span className="text-slate-400">SHARPE:</span> <span className="text-slate-900">{d.sharpeRatio.toFixed(3)}</span>
                               </div>
                             </div>
@@ -327,11 +328,11 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Oczekiwany Zwrot</p>
-                <p className="text-2xl font-black text-blue-600">{(results.userPortfolio.expectedReturn * 100).toFixed(2)}%</p>
+                <p className="text-2xl font-black text-blue-600">{Math.round(results.userPortfolio.expectedReturn * 100)}%</p>
               </div>
               <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ryzyko (Zmienność)</p>
-                <p className="text-2xl font-black text-red-500">{(results.userPortfolio.volatility * 100).toFixed(2)}%</p>
+                <p className="text-2xl font-black text-red-500">{Math.round(results.userPortfolio.volatility * 100)}%</p>
               </div>
               <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sharpe Ratio</p>
